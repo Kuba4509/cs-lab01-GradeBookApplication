@@ -9,15 +9,18 @@ using Newtonsoft.Json.Linq;
 
 namespace GradeBook.GradeBooks
 {
-    public class BaseGradeBook
+    public abstract class BaseGradeBook
     {
         public string Name { get; set; }
         public List<Student> Students { get; set; }
+        public GradeBookType Type { get; set; }
+        public bool isWeighted { get; set; }
 
-        public BaseGradeBook(string name)
+        public BaseGradeBook(string name, bool isWeighted)
         {
             Name = name;
             Students = new List<Student>();
+            isWeighted = isWeighted;
         }
 
         public void AddStudent(Student student)
@@ -82,12 +85,31 @@ namespace GradeBook.GradeBooks
                 return null;
             }
 
+            BaseGradeBook gradeBook;
+
             using (var file = new FileStream(name + ".gdbk", FileMode.Open, FileAccess.Read))
             {
                 using (var reader = new StreamReader(file))
                 {
                     var json = reader.ReadToEnd();
-                    return ConvertToGradeBook(json);
+                    var jobject = JsonConvert.DeserializeObject<JObject>(json);
+                    var type = Enum.Parse(typeof(GradeBookType),jobject.GetValue("Type").ToString(),true);
+
+                    switch (type)
+                    {
+                        case GradeBookType.Standard:
+                            gradeBook = JsonConvert.DeserializeObject<StandardGradeBook>(json);
+                            break;
+                        case GradeBookType.Ranked:
+                            gradeBook = JsonConvert.DeserializeObject<RankedGradeBook>(json);
+                            break;
+                        default:
+                            gradeBook = JsonConvert.DeserializeObject<StandardGradeBook>(json);
+                            break;
+
+                    }
+
+                    return gradeBook;
                 }
             }
         }
